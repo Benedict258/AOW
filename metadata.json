@@ -1,0 +1,6 @@
+{
+  "name": "Opportunity Intelligence System",
+  "description": "Automated Opportunity Intelligence System for Peter Grigoryev — tracking technology, cybersecurity, government, policy, fellowships, and career development opportunities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
