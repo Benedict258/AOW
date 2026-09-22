@@ -26,7 +26,7 @@ import {
 import { execute13StagePipeline } from './src/server/pipeline';
 import { runDeduplicationPipeline } from './src/server/deduplication';
 import { evaluateOpportunityFreshness } from './src/server/freshness';
-import { defaultCandidateProfile, defaultMatchingWeights } from './src/data/initialData';
+import { defaultCandidateProfile, defaultMatchingWeights, initialNewsItems, initialSourceRegistry } from './src/data/initialData';
 import { evaluateHardEligibility, calculateMatchScore } from './src/utils/engine';
 
 const app = express();
@@ -528,6 +528,54 @@ app.get('/api/scheduler/status', (req, res) => {
     ...sched,
     recentPipelineRuns: pipelineRuns.slice(0, 5),
   });
+});
+
+// -------------------------------------------------------------
+// News Intelligence Items
+// -------------------------------------------------------------
+app.get(['/api/news', '/api/v1/news'], (req, res) => {
+  res.json(initialNewsItems);
+});
+
+// -------------------------------------------------------------
+// Source Registry
+// -------------------------------------------------------------
+app.get(['/api/sources', '/api/v1/sources'], async (req, res) => {
+  const pool = getPool();
+  if (pool) {
+    try {
+      const client = await pool.connect();
+      try {
+        const q = await client.query('SELECT * FROM sources ORDER BY id ASC');
+        if (q.rows.length > 0) {
+          const mapped = q.rows.map((row: any) => {
+            const meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata || '{}') : (row.metadata || {});
+            return {
+              sourceId: row.id,
+              name: row.name,
+              organization: row.name,
+              tier: meta.tier || 1,
+              category: meta.category || 'GOVERNMENT',
+              accessMethod: meta.accessMethod || row.source_type || 'API',
+              apiUrl: row.url || '',
+              reliabilityScore: meta.reliability || 90,
+              rateLimit: meta.rateLimit || '60 req / min',
+              status: 'HEALTHY',
+              lastChecked: new Date().toISOString(),
+              enabled: true,
+              opportunitiesFound: 0,
+            };
+          });
+          return res.json(mapped);
+        }
+      } finally {
+        client.release();
+      }
+    } catch (err: any) {
+      console.warn('[Sources API] DB fetch error, falling back to initial registry:', err.message);
+    }
+  }
+  res.json(initialSourceRegistry);
 });
 
 // -------------------------------------------------------------

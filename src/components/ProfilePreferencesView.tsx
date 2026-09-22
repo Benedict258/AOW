@@ -333,7 +333,7 @@ export const ProfilePreferencesView: React.FC<ProfilePreferencesViewProps> = ({
 
             <div className="border border-neutral-200 rounded-lg p-4 bg-neutral-50 text-xs font-mono space-y-3">
               <div className="text-neutral-500 pb-2 border-b border-neutral-200">
-                To: benedictisaac258@gmail.com<br />
+                To: PeterGrigoryevS@outlook.com<br />
                 Subject: [Opportunity Intel] 3 High-Relevance Roles + 1 Policy Wire for Rutgers MS IT&A
               </div>
 

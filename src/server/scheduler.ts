@@ -135,7 +135,7 @@ export async function runServerSidePipeline(
     // 8. Log run to pipeline_runs table
     const runRecord: PipelineRunRecord = {
       run_timestamp: startTime,
-      source_platform: 'ai_studio',
+      source_platform: 'AOW_NATIVE_NODE',
       trigger_type: triggerType,
       sources_checked: 1,
       opportunities_extracted: extractedList.length,
@@ -182,7 +182,7 @@ export async function runServerSidePipeline(
 
     await logPipelineRun({
       run_timestamp: startTime,
-      source_platform: 'ai_studio',
+      source_platform: 'AOW_NATIVE_NODE',
       trigger_type: triggerType,
       sources_checked: 1,
       opportunities_extracted: 0,

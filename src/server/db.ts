@@ -124,7 +124,7 @@ export async function initializeDatabase(): Promise<DbStatus> {
           END;
 
           BEGIN
-            ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS source_platform TEXT DEFAULT 'ai_studio';
+            ALTER TABLE opportunities ADD COLUMN IF NOT EXISTS source_platform TEXT DEFAULT 'AOW_NATIVE_NODE';
           EXCEPTION WHEN OTHERS THEN
             NULL;
           END;
@@ -307,7 +307,7 @@ export async function upsertOpportunity(
           $14, $15, $16, $17, $18,
           $19, $20, $21,
           $22, $23, $24, $25,
-          $26, $27, 'ai_studio', $28::vector,
+          $26, $27, 'AOW_NATIVE_NODE', $28::vector,
           $29, $30, $31, NOW()
         )
         ON CONFLICT (id) DO UPDATE SET
@@ -317,7 +317,7 @@ export async function upsertOpportunity(
           score = EXCLUDED.score,
           match_breakdown = EXCLUDED.match_breakdown,
           ai_explanation = EXCLUDED.ai_explanation,
-          source_platform = 'ai_studio',
+          source_platform = 'AOW_NATIVE_NODE',
           embedding_gemini = COALESCE(EXCLUDED.embedding_gemini, opportunities.embedding_gemini),
           application_status = EXCLUDED.application_status,
           priority = EXCLUDED.priority,
@@ -390,12 +390,13 @@ export async function logPipelineRun(record: PipelineRunRecord): Promise<void> {
           opportunities_extracted, qualifying_opportunities, status,
           error_details, digest_delivered, created_at
         ) VALUES (
-          $1, 'ai_studio', $2, $3,
-          $4, $5, $6,
-          $7, $8, NOW()
+          $1, $2, $3, $4,
+          $5, $6, $7,
+          $8, $9, NOW()
         )
       `, [
         record.run_timestamp,
+        record.source_platform || 'AOW_NATIVE_NODE',
         record.trigger_type,
         record.sources_checked,
         record.opportunities_extracted,

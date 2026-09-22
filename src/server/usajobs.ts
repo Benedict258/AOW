@@ -91,7 +91,7 @@ export const sampleRawUsaJobsItems = [
 
 export async function fetchFromUsaJobsApi(options: UsaJobsFetchOptions = {}): Promise<UsaJobsFetchResult> {
   const apiKey = process.env.USAJOBS_API_KEY;
-  const userAgent = process.env.USAJOBS_USER_AGENT || 'benedictisaac258@gmail.com';
+  const userAgent = process.env.USAJOBS_USER_AGENT || 'PeterGrigoryevS@outlook.com';
   const keyword = options.keyword || 'cybersecurity';
   const resultsPerPage = options.resultsPerPage || 10;
   const page = options.page || 1;

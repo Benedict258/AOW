@@ -57,7 +57,7 @@ export async function execute13StagePipeline(
   const runId = `RUN-${Date.now()}`;
   const timestamp = new Date().toISOString();
   const stages: PipelineStageResult[] = [];
-  const recipient = options?.recipientEmail || process.env.ALERT_RECIPIENT_EMAIL || 'benedictisaac258@gmail.com';
+  const recipient = options?.recipientEmail || process.env.ALERT_RECIPIENT_EMAIL || 'PeterGrigoryevS@outlook.com';
 
   console.log(`[Pipeline] Initiating 13-Stage Intelligence Pipeline (${triggerType})`);
 
@@ -303,7 +303,7 @@ export async function execute13StagePipeline(
   // Log pipeline run to PostgreSQL
   const pipelineRecord: PipelineRunRecord = {
     run_timestamp: timestamp,
-    source_platform: 'ai_studio',
+    source_platform: 'AOW_NATIVE_NODE',
     trigger_type: triggerType,
     sources_checked: 1,
     opportunities_extracted: newExtractedOpps.length,

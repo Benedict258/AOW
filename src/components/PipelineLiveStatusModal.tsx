@@ -39,7 +39,7 @@ export const PipelineLiveStatusModal: React.FC<PipelineStatusModalProps> = ({
   // Test Email state
   const [sendingEmail, setSendingEmail] = useState<boolean>(false);
   const [emailResult, setEmailResult] = useState<any>(null);
-  const [targetEmail, setTargetEmail] = useState<string>('benedictisaac258@gmail.com');
+  const [targetEmail, setTargetEmail] = useState<string>('PeterGrigoryevS@outlook.com');
 
   const fetchStatus = async () => {
     try {

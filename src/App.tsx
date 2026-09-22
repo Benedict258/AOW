@@ -2,18 +2,16 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   defaultCandidateProfile,
   defaultMatchingWeights,
-  initialOpportunities,
-  initialNewsItems,
-  initialSourceRegistry,
 } from './data/initialData';
 import {
   Opportunity,
   CandidateProfile,
   MatchingWeights,
   SourceRegistryItem,
+  NewsIntelligenceItem,
   ApplicationTrackingStatus,
 } from './types';
-import { simulateIntelligenceCycle, calculateMatchScore, evaluateHardEligibility, evaluateFreshness } from './utils/engine';
+import { calculateMatchScore, evaluateHardEligibility } from './utils/engine';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { OpportunitiesView } from './components/OpportunitiesView';
@@ -25,13 +23,13 @@ import { SourceRegistryView } from './components/SourceRegistryView';
 import { ProfilePreferencesView } from './components/ProfilePreferencesView';
 import { OpportunityDetailModal } from './components/OpportunityDetailModal';
 import { PipelineLiveStatusModal } from './components/PipelineLiveStatusModal';
-import { CheckCircle2, Sparkles, X } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [opportunities, setOpportunities] = useState<Opportunity[]>(initialOpportunities);
-  const [newsItems, setNewsItems] = useState(initialNewsItems);
-  const [sources, setSources] = useState<SourceRegistryItem[]>(initialSourceRegistry);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [newsItems, setNewsItems] = useState<NewsIntelligenceItem[]>([]);
+  const [sources, setSources] = useState<SourceRegistryItem[]>([]);
   const [profile, setProfile] = useState<CandidateProfile>(defaultCandidateProfile);
   const [weights, setWeights] = useState<MatchingWeights>(defaultMatchingWeights);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -51,13 +49,45 @@ export default function App() {
         }
       }
     } catch {
-      // Keep initial data if backend API is not yet running
+      // Backend not available — show empty state
+    }
+  }, []);
+
+  // Load news items from backend
+  const fetchNewsFromApi = useCallback(async () => {
+    try {
+      const res = await fetch('/api/news');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setNewsItems(data);
+        }
+      }
+    } catch {
+      // Backend not available
+    }
+  }, []);
+
+  // Load sources from backend
+  const fetchSourcesFromApi = useCallback(async () => {
+    try {
+      const res = await fetch('/api/sources');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setSources(data);
+        }
+      }
+    } catch {
+      // Backend not available
     }
   }, []);
 
   useEffect(() => {
     fetchOpportunitiesFromApi();
-  }, [fetchOpportunitiesFromApi]);
+    fetchNewsFromApi();
+    fetchSourcesFromApi();
+  }, [fetchOpportunitiesFromApi, fetchNewsFromApi, fetchSourcesFromApi]);
 
   // Computed counts for badges
   const savedCount = useMemo(
@@ -220,15 +250,13 @@ export default function App() {
         return;
       }
     } catch {
-      // Fallback if running client-only
+      // Backend not available
     }
 
-    const result = simulateIntelligenceCycle(opportunities, profile, weights, newsItems);
-    setOpportunities(result.updatedOpportunities);
     setIsCycling(false);
     setCycleToast({
-      title: 'Intelligence Cycle Completed',
-      desc: `Verified ${result.stats.totalChecked} opportunities across 4 tiers. ${result.stats.urgentCount} urgent deadlines flagged.`,
+      title: 'Pipeline Unavailable',
+      desc: 'Backend server is not running. Start the server to execute the intelligence pipeline.',
     });
     setTimeout(() => setCycleToast(null), 4000);
   };
@@ -284,7 +312,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 text-neutral-900 flex flex-col font-sans antialiased selection:bg-neutral-900 selection:text-white">
+    <div className="min-h-screen bg-[#050B10] text-white bg-grid-pattern flex flex-col font-sans antialiased selection:bg-[#38BDF8]/30">
       {/* Toast Notification */}
       {cycleToast && (
         <div className="fixed bottom-6 right-6 z-50 bg-neutral-900 text-white rounded-lg px-4 py-3 shadow-xl border border-neutral-800 flex items-start space-x-3 max-w-sm animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -437,16 +465,16 @@ export default function App() {
         onPipelineTriggered={fetchOpportunitiesFromApi}
       />
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-neutral-200 py-4 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-neutral-500">
-          <div className="flex items-center space-x-2">
-            <span className="font-semibold text-neutral-800">Opportunity Intelligence System</span>
+      {/* Dark Footer */}
+      <footer className="bg-[#0B131C] border-t border-white/10 py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-white">Automated Opportunity Intelligence System</span>
             <span>•</span>
-            <span>Peter Grigoryev (benedictisaac258@gmail.com)</span>
+            <span className="text-[#38BDF8]">Peter Grigoryev</span>
           </div>
-          <div>
-            <span>Rutgers Business School • MS in Information Technology and Analytics</span>
+          <div className="font-mono text-[11px]">
+            Rutgers Business School • MS in Information Technology and Analytics
           </div>
         </div>
       </footer>

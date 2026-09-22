@@ -35,7 +35,7 @@ export interface TestEmailResult {
 
 export function buildDigestEmailHtml(
   opportunities: Opportunity[],
-  recipientEmail: string = 'benedictisaac258@gmail.com'
+  recipientEmail: string = 'PeterGrigoryevS@outlook.com'
 ): string {
   const dateStr = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -132,7 +132,7 @@ export function buildDigestEmailHtml(
 export async function sendTestEmail(
   targetRecipient?: string
 ): Promise<TestEmailResult> {
-  const recipient = targetRecipient || process.env.ALERT_RECIPIENT_EMAIL || 'benedictisaac258@gmail.com';
+  const recipient = targetRecipient || process.env.ALERT_RECIPIENT_EMAIL || 'PeterGrigoryevS@outlook.com';
   const timestamp = new Date().toISOString();
   const resend = getResendClient();
 
@@ -164,7 +164,7 @@ export async function sendTestEmail(
           <strong>Target Tracks:</strong> Cybersecurity, Critical Infrastructure, Federal Cyber Defense, IT Analytics<br>
           <strong>Recipient:</strong> ${recipient}<br>
           <strong>Dispatched At:</strong> ${timestamp}<br>
-          <strong>Sender:</strong> onboarding@resend.dev (Resend API)
+          <strong>Sender:</strong> invoices@invoices.benedictisaac.dev (Resend API)
         </div>
         <p style="font-size: 13px; color: #64748b; margin-top: 16px;">
           All subsystems (USAJOBS Ingestion, Structured Extraction, Deduplication, Hard-Eligibility Gate, 8-Factor Scoring, and Email Delivery) are operating successfully end to end.
@@ -175,7 +175,7 @@ export async function sendTestEmail(
 
   try {
     const res = await resend.emails.send({
-      from: 'Opportunity Intel <onboarding@resend.dev>',
+      from: 'Opportunity Intel <invoices@invoices.benedictisaac.dev>',
       to: [recipient],
       subject,
       html,
@@ -221,7 +221,7 @@ export async function sendOpportunityDigestEmail(
   opportunities: Opportunity[],
   customRecipient?: string
 ): Promise<DigestDeliveryResult> {
-  const recipient = customRecipient || process.env.ALERT_RECIPIENT_EMAIL || 'benedictisaac258@gmail.com';
+  const recipient = customRecipient || process.env.ALERT_RECIPIENT_EMAIL || 'PeterGrigoryevS@outlook.com';
   const timestamp = new Date().toISOString();
 
   // Section 10.2: Empty result sets never trigger a notification. Actionable only if ELIGIBLE and finalScore >= 70
@@ -261,7 +261,7 @@ export async function sendOpportunityDigestEmail(
 
   try {
     const data = await resend.emails.send({
-      from: 'Opportunity Intel <onboarding@resend.dev>',
+      from: 'Opportunity Intel <invoices@invoices.benedictisaac.dev>',
       to: [recipient],
       subject,
       html,

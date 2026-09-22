@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
 import { Opportunity, OpportunityCategory } from '../types';
+import { generateGroqCompletion } from './llm';
 import crypto from 'crypto';
 
 let genAIClient: GoogleGenAI | null = null;
@@ -87,13 +88,9 @@ export async function extractOpportunityWithGemini(
   const title = desc.PositionTitle || 'Federal Opportunity';
   const org = desc.OrganizationName || desc.DepartmentName || 'Federal Government';
 
-  const ai = getGenAI();
-
-  if (ai) {
-    try {
-      const duties = desc.UserArea?.Details?.MajorDuties || [];
-      const requirements = desc.UserArea?.Details?.Requirements || [];
-      const summaryText = `
+  const duties = desc.UserArea?.Details?.MajorDuties || [];
+  const requirements = desc.UserArea?.Details?.Requirements || [];
+  const summaryText = `
 Position Title: ${desc.PositionTitle || title}
 Organization: ${desc.OrganizationName || org}
 Department: ${desc.DepartmentName || ''}
@@ -104,8 +101,105 @@ Major Duties: ${Array.isArray(duties) ? duties.join('; ') : duties}
 Requirements: ${Array.isArray(requirements) ? requirements.join('; ') : requirements}
 Application Deadline: ${desc.ApplicationCloseDate || ''}
 URI: ${desc.PositionURI || ''}
-      `.trim();
+  `.trim();
 
+  // 1. Try Groq (openai/gpt-oss-120b) first if configured
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const groqPrompt = `You are a federal career intelligence extraction engine.
+Analyze this USAJOBS job opportunity record and output ONLY valid JSON matching this schema:
+{
+  "title": "string",
+  "organization": "string",
+  "category": "WORK",
+  "subCategory": "string",
+  "sector": "Government",
+  "location": "string",
+  "isRemote": boolean,
+  "workType": "string",
+  "description": "string",
+  "requirements": ["string"],
+  "skills": ["string"],
+  "educationRequirement": "string",
+  "citizenshipRequirement": "US_CITIZEN_REQUIRED" | "US_PERMANENT_RESIDENT" | "OPEN_TO_ALL" | "UNCERTAIN",
+  "applicationDeadline": "string or null",
+  "deadlineType": "FIXED" | "ROLLING" | "UNKNOWN"
+}
+Ensure citizenship requirement is accurately parsed: if U.S. Citizenship is mentioned anywhere, classify as 'US_CITIZEN_REQUIRED'.
+
+Listing details:
+${summaryText}`;
+
+      const groqResult = await generateGroqCompletion({
+        prompt: groqPrompt,
+        systemPrompt: 'Extract structured federal opportunity JSON for Peter Grigoryev opportunity intelligence system.',
+        jsonMode: true,
+      });
+
+      if (groqResult) {
+        const parsed = JSON.parse(groqResult);
+        const fingerprint = crypto
+          .createHash('sha256')
+          .update(`${(parsed.title || title).toLowerCase().trim()}|${(parsed.organization || org).toLowerCase().trim()}|${parsed.applicationDeadline || ''}`)
+          .digest('hex')
+          .slice(0, 16);
+
+        return {
+          id: `OPP-GROQ-${fingerprint.slice(0, 8).toUpperCase()}`,
+          externalId,
+          title: parsed.title || title,
+          organization: parsed.organization || org,
+          category: (parsed.category as OpportunityCategory) || 'WORK',
+          subCategory: parsed.subCategory || 'Internship',
+          sector: (parsed.sector as any) || 'Government',
+          sourceTier,
+          sourceName,
+          url: desc.PositionURI || 'https://www.usajobs.gov',
+          location: parsed.location || desc.PositionLocationDisplay || 'Washington, DC',
+          isRemote: Boolean(parsed.isRemote),
+          workType: parsed.workType || 'Internship',
+          description: parsed.description || desc.JobSummary || '',
+          requirements: parsed.requirements || [],
+          skills: parsed.skills || [],
+          educationRequirement: parsed.educationRequirement || "Master's Degree Preferred",
+          citizenshipRequirement: parsed.citizenshipRequirement || 'US_CITIZEN_REQUIRED',
+          publishedAt: new Date().toISOString(),
+          applicationDeadline: parsed.applicationDeadline || desc.ApplicationCloseDate || null,
+          deadlineType: parsed.deadlineType || 'FIXED',
+          status: 'ACTIVE',
+          hardEligibility: 'CLEARLY_ELIGIBLE',
+          hardEligibilityReasons: ['US Citizenship confirmed', 'Graduate standing eligible'],
+          matchBreakdown: {
+            careerAlignment: 92,
+            skillAlignment: 90,
+            eligibilityScore: 100,
+            experienceFit: 88,
+            educationFit: 95,
+            opportunityValue: 95,
+            locationRemoteFit: 90,
+            timingDeadlineFit: 88,
+            weightedScore: 92,
+            hardEligibilityMultiplier: 1.0,
+            finalScore: 92,
+          },
+          aiExplanation: `Extracted via Groq (${process.env.GROQ_MODEL || 'openai/gpt-oss-120b'}). Aligns with Peter's Rutgers Master's in IT & Analytics (Cybersecurity).`,
+          firstSeenAt: new Date().toISOString(),
+          lastVerifiedAt: new Date().toISOString(),
+          fingerprint,
+          isSaved: false,
+          applicationStatus: 'Discovered',
+          priority: 'High',
+        };
+      }
+    } catch (groqErr: any) {
+      console.warn('Groq extraction fallback to Gemini/Rule engine:', groqErr.message);
+    }
+  }
+
+  // 2. Try Gemini if configured
+  const ai = getGenAI();
+  if (ai) {
+    try {
       const prompt = `You are a federal career intelligence extraction engine.
 Analyze this USAJOBS job opportunity record and extract strict structured attributes conforming to the JSON schema.
 Ensure citizenship requirement is accurately parsed: if U.S. Citizenship is mentioned anywhere in the requirements or qualifications, classify as 'US_CITIZEN_REQUIRED'.
@@ -177,7 +271,7 @@ ${summaryText}`;
             hardEligibilityMultiplier: 1.0,
             finalScore: 91,
           },
-          aiExplanation: `Extracted via Gemini 3.5 structured output. Aligns directly with Peter's Rutgers Master's concentration in Cybersecurity and analytics frameworks.`,
+          aiExplanation: `Extracted via Gemini structured output. Aligns directly with Peter's Rutgers Master's concentration in Cybersecurity and analytics.`,
           firstSeenAt: new Date().toISOString(),
           lastVerifiedAt: new Date().toISOString(),
           fingerprint,
@@ -191,7 +285,7 @@ ${summaryText}`;
     }
   }
 
-  // Deterministic rule-based fallback if LLM is unreachable
+  // 3. Deterministic rule-based fallback if LLMs are unreachable
   const rawDesc = desc.JobSummary || '';
   const rawQual = desc.QualificationSummary || '';
   const isUsCitizen = /citizen/i.test(rawDesc) || /citizen/i.test(rawQual);
